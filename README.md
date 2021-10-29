@@ -1,9 +1,9 @@
 Development and Validation of AKI Predictive Models Based on Personalized Model with Transfer Learning
 =====================================================================
 
-This is the working directory building and validating Personalized Model with Transfer Learning (PMTL) for Acute Kidney Injury (AKI) prediction based on electronic health records (EHRs) from University of Kansas Medical Center (KUMC).
+This is the working directory for building and validating a Personalized Model with Transfer Learning (PMTL) for Acute Kidney Injury (AKI) prediction based on electronic health records (EHRs) from University of Kansas Medical Center (KUMC).
 
-by Kang Liu, with Yong Hu, Mei Liu
+by Kang Liu, with Yong Hu and Mei Liu
 [Big Data Decision Institute, Jinan University][BDDI]
 [Medical Informatics Division, Univeristy of Kansas Medical Center][MI]
 
@@ -17,16 +17,16 @@ Share and Enjoy according to the terms of the MIT Open Source License.
 
 ## Background
 
-Acute Kidney Injury (**AKI**) is a heterogeneous syndrome, affecting 10-15% of all hospitalized patients and >50% of the intensive care unit (ICU) patients. In this application, we propose to build personalized predictive models to identify patients at risk for hospital-acquired AKI as well as their risk factors, and externally validate the models in different heterogeneous subgroups of patients. The project will be carried out with the following aims:
+Acute Kidney Injury (**AKI**) is a heterogeneous syndrome, affecting 10-15% of all hospitalized patients and >50% of the intensive care unit (ICU) patients. In this application, we propose to build personalized predictive models to identify patients at risk for hospital-acquired AKI as well as their risk factors, and externally validate the models in different heterogeneous subgroups of patients. The project was carried out with the following aims:
 
-* **Aim 1 - Development of PMTL**: Personalized AKI prediction modeling approach was develop and internally cross-validate using electronic medical record (EMR) data from the University of Kansas Medical Center’s (KUMC) de-identified clinical data repository called [HERON] (Health Enterprise Repository for Ontological Narration). 
+* **Aim 1 - Development of PMTL**: Personalized AKI prediction modeling approach was developed and internally cross-validated using electronic medical record (EMR) data from the University of Kansas Medical Center’s (KUMC) de-identified clinical data repository called [HERON] (Health Enterprise Repository for Ontological Narration). 
       * Task 1.1: data extraction and quality check       
       * Task 1.2: exploratory data analysis (e.g. strategies for data cleaning and representation, feature engineering)     
       * Task 1.3: developing Similar Sample Matching module and Similarity Measure Optimization module
       * Task 1.4: addressing diminishing sample size after similar sample matching (Transfer learning module is developed)
       * Task 1.5: developing proposed personalized models (PMTL)    
  
-* **Aim 2 -  Validation of PMTL**: Validating PMTL in heterogeneous patients. We implement an automated package to develop PMTL for each general patient. Prediction performance of PMTL was validated in general patients, high-risk subgroups, low-risk patients, and subgroups studied by previous AKI prediction literature and compared with global, subgroup and previous model accordingly. Prediction result of PMTL for a patient will not change in different experiments; performance change of PMTL in different population caused by the change of test sample we selected.
+* **Aim 2 -  Validation of PMTL**: Validating PMTL in heterogeneous patients. We implemented an automated package to develop PMTL for each general patient. Prediction performance of PMTL was validated in general patients, high-risk subgroups, low-risk patients, and subgroups studied by previous AKI prediction literature and compared with global, subgroup and previous model accordingly. Prediction result of PMTL for a patient will not change in different experiments; performance change of PMTL in different population caused by the change of test sample selected.
       * Task 2.1: testing of PMTL in all test samples        
       * Task 2.2: Comparing  PMTL with global model in general and low-risk patients
       * Task 2.3: Comparing  PMTL, global and subgroup model in high-risk patients
@@ -71,7 +71,7 @@ In order to run predictive models and generate final report, the following infra
 [ PyMARE]: https://pymare.readthedocs.io/en/latest/
 ***
 
-## Process of Model Validation
+## Model Validation
 The following instructions are for generating final report from our study cohort.
 
 ### Part I: Data preparation
@@ -80,17 +80,17 @@ The following instructions are for generating final report from our study cohort
 
 ### Part II: Development of PMTL
 1. Comparing different approaches for personalized modeling
-- **Aim**: Find out suitable methods for personalized modeling by comparing different approach for similar sample matching, similarity measure optimization and addressing diminishing sample size in validation set. 
--  **Code**: most of the codes use for these experiments are saved in folder "[Model_development]". For example, "PM-KNN_PCA.py" means similar sample matching are based on "k-nearest neighbor" algorithm, PCA is use for feature selection, similarity measure optimization is not performed.  All the codes can output prediction of models with and without transfer learning.
+- **Aim**: Identify suitable methods for personalized modeling by comparing different approach for similar sample matching, similarity measure optimization and addressing diminishing sample size in validation set. 
+-  **Code**: Main codes used for these experiments are saved in folder "[Model_development]". For example, "PM-KNN_PCA.py" means similar sample matching are based on "k-nearest neighbor" algorithm, PCA is use for feature selection, similarity measure optimization is not performed.  All the codes can output prediction of models with and without transfer learning.
 2. Developing PMTL
- -  **Code**: The final code used for PMTL training is "PMTL_training.py". It output the optimized similarity measure for  similar sample matching.
+ -  **Code**: The final code used for PMTL training is "PMTL_training.py". It outputs the optimized similarity measure for  similar sample matching.
 
 [Model_development]: https://github.com/BDAII/PMTL/tree/main/Model_development
 
 ### Part III: Validation of PMTL
 1. Validation in general patients
 - **Save**  the similarity measure learned by  "PMTL_training.py" from training data.
-- **Edit** "PMTL_testing.py"  in folder "[Model_validation]" by specifying the file path you save the similarity measure as well as path of training set and test set.
+- **Edit** "PMTL_testing.py"  in folder "[Model_validation]" by specifying the file path where you saved the similarity measure as well as path of training set and test set.
 - **Run** "PMTL_testing.py" , and it will output prediction of PMTL (with specific number of similar sample) and global model (built with 100% sample) for each patients as well as logistic regression coefficients of predictors for each patients in PMTL. 
 - **Run** "Model_comparison.py" (in folder "[Model_validation]") to compare model discrimination between PMTL and global model, or use software like [Medcalc] (proposed for AUROC).
 - **Run** "Calibration_analysis.py" (in folder "[Model_validation]") to compare model calibration
