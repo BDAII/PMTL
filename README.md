@@ -63,9 +63,9 @@ Variables are time-stamped and every encounter in the dataset was represented by
 ## Requirements
 In order to run predictive models and generate final report, the following infrastructure requirement must be satisfied:
 
-**Python**: version >=3.7.4 is required.    
-**[Scikit-learn]**: A widely used package for machine learning in python. The version 0.19.2 is used to perform most of our experiment, but the experiment of calibration need version 0.24.2.
-**[ PyMARE]**: A python package used for  meta-regression.
+- **Python**: version >=3.7.4 is required.    
+- **[Scikit-learn]**: A widely used package for machine learning in python. The version 0.19.2 is used to perform most of our experiment, but the experiment of calibration need version 0.24.2.
+- **[ PyMARE]**: A python package used for  meta-regression.
 
 [Scikit-learn]: https://scikit-learn.org/stable/
 [ PyMARE]: https://pymare.readthedocs.io/en/latest/
