@@ -37,7 +37,7 @@ Acute Kidney Injury (**AKI**) is a heterogeneous syndrome, affecting 10-15% of a
       * Task 3.2: evaluate influence changes of predictors in different subgroups and persons. 
       * Task 3.3: analyze interaction of predictors based on meta-regression and subgroup analysis.
 
-[HERON]:https://pubmed.ncbi.nlm.nih.gov/20190053/
+[HERON]:https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3243191/
 
 ***
 
@@ -45,207 +45,84 @@ Acute Kidney Injury (**AKI**) is a heterogeneous syndrome, affecting 10-15% of a
 
 For each hospital admissions (encounters) in the data set, we extracted all demographic information, vitals data, medications, past medical diagnoses, and admission diagnosis from EMR. For test laboratory, we extracted a selected list of laboratory variables that may represent potential presence of a comorbidity correlated with AKI ([Matheny, M.E., et al., 2010]). SCr and eGFR were not included as predictors because they were used to determine the occurrence of AKI.
 
-Variables are time-stamped and every encounter in the dataset was represented by a sequence of clinical events construed by clinical observation vectors aggregated on daily basis. We performed a data preprocessing process as follows: 
+Variables are time-stamped and every encounter in the dataset was represented by a sequence of clinical events construed by clinical observation vectors aggregated on daily basis. The prediction point was 1-day prior to AKI onset for AKI patients and 1-day prior to the last SCr record for non-AKI patients. We performed a data preprocessing process as follows: 
 1) Medication exposure included inpatient (i.e. drug used during hospitalization) and outpatient medications (i.e. medication reconciliation and prior outpatient prescriptions). Medication names were normalized by mapping to RxNorm ingredient. Medication exposure was defined as true if it is taken within 7-days before a prediction point.
-2) Admission diagnoses were represented using the All Patients Refined Diagnosis Related Group (APR-DRG),  collected from the University Health System Consortium ([UHC]) data source in [HERON]. We performed one-hot-coding on admission diagnosis to convert them into binary representations.
+2) Admission diagnoses were represented using the All Patients Refined Diagnosis Related Group ([APR-DRG]),  collected from the University Health System Consortium ([UHC]) data source in [HERON]. We performed one-hot-coding on admission diagnosis to convert them into binary representations.
 3) Patient medical history was captured as major diagnoses (ICD-9 codes grouped according to the Clinical Classifications Software ([CCS]) diagnosis categories by the Agency for Healthcare Research and Quality). We considered the presence/absence of each major diagnosis before the prediction point.
 4) Vitals were categorized according to commonly used standards and missing values were treated as a unique category. The last recorded value before a prediction point was used.
 5) Labs were categorized as “unknown”, “present and normal”, or “present and abnormal”. The last recorded value before a prediction point was used.
 6) Demographics were converted into binary variables based on one-hot-coding.
 
+[APR-DRG]: https://www.health.ny.gov/facilities/hospital/reimbursement/apr-drg/weights/docs/siw_alos_2014.xls
 [Matheny, M.E., et al., 2010]: https://pubmed.ncbi.nlm.nih.gov/20354229/
 [UHC]: https://www.vizientinc.com
 [CCS]: [https://www.hcup-us.ahrq.gov/toolssoftware/ccs/ccs.jsp](https://www.hcup-us.ahrq.gov/toolssoftware/ccs/ccs.jsp)
 
 ***
-## Previous text
-
-All variables are time-stamped and every patient in the dataset was represented by a sequence of clinical events construed by clinical observation vectors aggregated on daily basis.
-
-The initial feature set contained more than 30,000 distinct features. We performed an automated curation process as follows: 
-1) systematically identified extreme values of numerical variables (e.g., lab test results and vital signs) that are beyond 1st and 99th percentile as outliers and removed them; 
-2) performed one-hot-coding on categorical variables (e.g., diagnosis and procedure codes) to  convert them into binary representations; 
-3) used the cumulative-exposure-days of medications as predictors instead of a binary indicator for the sheer existence of that medication; 
-4) when repeated measurements presented within certain time interval, we chose the most recent value; 
-5) when measurements are missing for a certain time interval, we performed a common sampling practice called sample-and-hold which carried the earlier available observation over; 
-6) introduced additional features such as lab value changes since last observation or daily blood pressure trends, which have been shown to be predictive of AKI10.
-
-The discrete-time survival model ([DTSA]) required converting the encounter-level data into an Encounter-Period data set with discrete time interval indicator (i.e. day1, day2, day3,...). More details about this conversion can be found in the `format_data()` and `get_dsurv_temporal()` functions from `/R/util.R`. As shown in the figure below: ![Figure1-Data Preprocess.](/figure/preproc_demo.png), 
-
-AKI patient at days of AKI onset contributed to positive outcomes, while earlier non-AKI days of AKI patients as well as daily outcomes of truely non-AKI patients (i.e. who never progressed to any stage of AKI) contributed to nefative outcomes. 
-
-
-[DTSA]: https://www.jstor.org/stable/1165085?seq=1#metadata_info_tab_contents
-***
 
 ## Requirements
 In order to run predictive models and generate final report, the following infrastructure requirement must be satisfied:
 
-**R program**: [R Program] (>=3.3.0) is required and [R studio] (>= 1.0.136) is preferred to be installed as well for convenient report generation.    
-**DBMS connection**: Valid channel should also be established between R and DBMS so that communication between R and CDM database can be supported.    
-**Dependencies**: A list of core R packages as well as their dependencies are required. However, their installations have been included in the codes. 
-* [DBI] (>=0.2-5): for communication between R and relational database    
-* [ROracle] (>=1.3-1): an Oracle JDBC driver    
-* [RJDBC]: a SQL sever driver    
-* [RPostgres]: a Postgres driver    
-* [rmarkdown] (>=1.10): for rendering report from .Rmd file (*Note: installation may trip over dependencies [digest] and [htmltools] (>=0.3.5), when manually installation is required*).     
-* [dplyr] (>=0.7.5): for efficient data manipulation    
-* [tidyr] (>=0.8.1): for efficient data manipulation    
-* [magrittr] (>=1.5): to enable pipeline operation    
-* [stringr] (>=1.3.1): for handling strings     
-* [knitr] (>=1.11): help generate reports
-* [kableExtra]: for generating nice tables
-* [ggplot2] (>=2.2.1): for generating nice plots    
-* [ggrepel]: to avoid overlapping labels in plots   
-* [openxlsx] (>=4.1.0): to save tables into multiple sheets within a single .xlsx file      
-* [RCurl]: for linkable descriptions (when uploading giant mapping tables are not feasible)
-* [XML]: for linkable descriptions (when uploading giant mapping tables are not feasible)
-* [xgboost]: for effectively training the gradient boosting machine   
-* [pROC]: for calculating receiver operating curve 
-* [PRROC]: for calculating precision recall curve
-* [ParBayesianOptimization]: a parallel implementation for baysian optimizaion for xgboost
-* [doParallel]: provide backend for parallelization
+**Python**: version >=3.7.4 is required.    
+**[Scikit-learn]**: A widely used package for machine learning in python. The version 0.19.2 is used to perform most of our experiment, but the experiment of calibration need version 0.24.2.
+**[ PyMARE]**: A python package used for  meta-regression.
 
-
-[R Program]: https://www.r-project.org/
-[R studio]: https://www.rstudio.com/
-[DBI]: https://cran.r-project.org/web/packages/DBI/DBI.pdf
-[ROracle]: https://cran.r-project.org/web/packages/ROracle/ROracle.pdf
-[RJDBC]: https://cran.r-project.org/web/packages/RJDBC/RJDBC.pdf
-[RPostgres]: https://cran.r-project.org/web/packages/RPostgres/RPostgres.pdf
-[rmarkdown]: https://cran.r-project.org/web/packages/rmarkdown/rmarkdown.pdf
-[dplyr]: https://cran.r-project.org/web/packages/dplyr/dplyr.pdf
-[tidyr]: https://cran.r-project.org/web/packages/tidyr/tidyr.pdf
-[magrittr]: https://cran.r-project.org/web/packages/magrittr/magrittr.pdf
-[stringr]: https://cran.r-project.org/web/packages/stringr/stringr.pdf
-[knitr]: https://cran.r-project.org/web/packages/knitr/knitr.pdf
-[kableExtra]: http://haozhu233.github.io/kableExtra/awesome_table_in_html.html
-[ggplot2]: https://cran.r-project.org/web/packages/ggplot2/ggplot2.pdf
-[ggrepel]: https://github.com/slowkow/ggrepel
-[openxlsx]: https://cran.r-project.org/web/packages/openxlsx/openxlsx.pdf
-[digest]: https://cran.r-project.org/web/packages/digest/digest.pdf
-[htmltools]:  https://cran.r-project.org/web/packages/htmltools/htmltools.pdf
-[RCurl]: https://cran.r-project.org/web/packages/RCurl/RCurl.pdf
-[XML]: https://cran.r-project.org/web/packages/XML/XML.pdf
-[xgboost]:https://xgboost.readthedocs.io/en/latest/   
-[pROC]: https://cran.r-project.org/web/packages/pROC/pROC.pdf
-[PRROC]: https://cran.r-project.org/web/packages/PRROC/PRROC.pdf
-[ParBayesianOptimization]: https://cran.r-project.org/web/packages/ParBayesianOptimization/ParBayesianOptimization.pdf 
-[doParallel]: https://cran.r-project.org/web/packages/doParallel/doParallel.pdf
-
+[Scikit-learn]: https://scikit-learn.org/stable/
+[ PyMARE]: https://pymare.readthedocs.io/en/latest/
 ***
 
+## Process of Model Validation
+The following instructions are for generating final report from our study cohort.
 
-## Site Usage for Model Validation
-The following instructions are for extracting cohort and generating final report from a `DBMS` data source (specified by `DBMS_type`) (available options are: Oracle, tSQL, PostgreSQL(not yet)) 
+### Part I: Data preparation
+ 1. Please make sure class label of patients (AKI or not AKI) are placed in the last column of the data sheet used for model training and testing.
+ 2. Edit the file path of input and output in our python code.
 
-### Part I: Study Cohort and Variable Extraction
+### Part II: Development of PMTL
+1. Comparing different approaches for personalized modeling
+- **Aim**: Find out suitable methods for personalized modeling by comparing different approach for similar sample matching, similarity measure optimization and addressing diminishing sample size in validation set. 
+-  **Code**: most of the codes use for these experiments are saved in folder "[Model_development]". For example, "PM-KNN_PCA.py" means similar sample matching are based on "k-nearest neighbor" algorithm, PCA is use for feature selection, similarity measure optimization is not performed.  All the codes can output prediction of models with and without transfer learning.
+2. Developing PMTL
+ -  **Code**: The final code used for PMTL training is "PMTL_training.py". It output the optimized similarity measure for  similar sample matching.
 
-1. Get `AKI_CDM` code
-  - **download** the [AKI_CDM] repository as a .zip file, unzip and save folder as `path-to-dir/AKI_CDM`    
-  *OR*  
-  - **clone** [AKI_CDM] repository (using [git command]):   
-      i) navigate to the local directory `path-to-dir` where you want to save the project repository and     
-      type command line: `$ cd <path-to-dir>`   
-      ii) clone the AKI_CDM repository by typing command line: `$ git clone https://github.com/kumc-bmi/AKI_CDM`  
+[Model_development]: https://github.com/BDAII/PMTL/tree/main/Model_development
 
+### Part III: Validation of PMTL
+1. Validation in general patients
+- **Save**  the similarity measure learned by  "PMTL_training.py" from training data.
+- **Edit** "PMTL_testing.py"  in folder "[Model_validation]" by specifying the file path you save the similarity measure as well as path of training set and test set.
+- **Run** "PMTL_testing.py" , and it will output prediction of PMTL (with specific number of similar sample) and global model (built with 100% sample) for each patients as well as logistic regression coefficients of predictors for each patients in PMTL. 
+- **Run** "Model_comparison.py" (in folder "[Model_validation]") to compare model discrimination between PMTL and global model, or use software like [Medcalc] (proposed for AUROC).
+- **Run** "Calibration_analysis.py" (in folder "[Model_validation]") to compare model calibration
 
-2. Prepare configeration file `config.csv` and save in the AKI_CDM project folder    
-      i) **download** the `config_<DBMS_type>_example.csv` file according to `DBMS_type`      
-      ii) **fill in** the content accordingly (or you can manually create the file using the following format)      
-    
-    |username     |password    |access         |cdm_db_name/sid                 |cdm_db_schema      |temp_db_schema |   
-    |:------------|:-----------|:--------------|:-------------------------------|:------------------|:--------------|    
-    |your_username|your_passwd |host:port    |database name(tSQL)/SID(Oracle) |current CDM schema |default schema |   
-    
-      iii) **save as** `config.csv` under the same directory         
-      
+2. Validation in high-risk and low-risk patients
+- **Edit** "Subgroup_modeling_in_subgroups_of_our_data.py"  in folder "[Model_validation]" by specifying the file path you save the list of features used for determined high-risk subgroups as well as path of training set and test set.
+- **Run** "Subgroup_modeling_in_subgroups_of_our_data.py" , and it will output prediction of subgroup models for each patient in these high-risk subgroups, and the prediction probability of remaining low-risk patients is set to 0, you can filter them out easily with EXCEL. You can perform model comparison similar to the case in  general patients.
 
-[AKI_CDM]: https://github.com/kumc-bmi/AKI_CDM
-[git command]: https://git-scm.com/book/en/v2/Git-Basics-Getting-a-Git-Repository
-
-
-
-3. Extract AKI cohort and generate final report   
-      i) **setup** working directory    
-        - In *r-studio* environment, simply **open** R project `AKI_CDM.Rproj` within the folder
-        *OR*    
-        - In *plain r* environment, **set working directory** to where `AKI_CDM` locates by runing `setwd("path-to-dir/AKI_CDM")`
-            
-      ii) **edit** r script `render_report.R` by specifying the following parameters:   
-        - `which_report`: which report you want to render (default is `./report/AKI_CDM_EXT_VALID_p1_QA.Rmd`, but there will be more options in the future)   
-        - `DBMS_type`: what type of database the current CDM is built on (available options are: `Oracle`(default), `tSQL`)        
-        - `driver_type`: what type of database connection driver is available (available options are: `OCI` or `JDBC` for oracle; `JDBC` for sql server)      
-        - `start_date`, `end_date`: the start and end date of inclusion period, in `"yyyy-mm-dd"` format (e.g. "2010-01-01", with the quotes)             
-      
-      iii) **run** *Part I* of r script `render_report.R` after assigning correct values to the parameters in ii)        
-      
-      iv) **collect and report** all output files from `/output` folder   
-        -- a. AKI_CDM_EXT_VALID_p1_QA.html - html report with description, figures and partial tables    
-        -- b. AKI_CDM_EXT_VALID_p1_QA_TBL.xlsx - excel with full summary tables    
-
-*Remark*: all the counts (patient, encounter, record) are masked as "<11" if the number is below 11
+3. Validation in subgroups from previous studies
+- **Edit** "Subgroup_modeling_in_subgroups_in_previous_study.py"  in folder "[Model_validation]" by specifying the file path you save the list of features used for determined subgroups in previous study, path of training set and test set, and path of prediction result of PMTL for general patients.
+- **Run** "AUC_of_model_in_subgroups_in_previous_study.py"  , and it will output AUROC of subgroup, global and personalized model.
+- **Edit** "AUC_std_in_subgroups_in_previous_study_PMTL.py"  in folder "[Model_validation]" by specifying the file path you save the list of features used for determined subgroups in previous study and path of prediction result of PMTL for general patients.
+- **Run** "AUC_std_in_subgroups_in_previous_study_PMTL.py", and it will output standard deviation of AUROC  of PMTL, and we can use it to compare PMTL with models in previous study.
 
 
-### Part II: Validate Existing Predictive Models and Retrain Predictive Models with Local Data (Not fully tested yet)
+[Model_validation]: https://github.com/BDAII/PMTL/tree/main/Model_validation
+[Medcalc]: https://www.medcalc.org/
 
-1. Validate the given predictive model trained on KUMC's data   
+### Part IV: Analysis of predictor interaction
+- **Edit** "AUC_gain_of_predictors_in_global_model_and_PMTL.py" and  "AUC_gain_change_in_subgroups.py" in folder "[Interaction_analysis]" by specifying the file path of training set, test set, prediction result of PMTL for general patients (saving the intercept of each PMTL), and coefficients of PMTL for each general patient. The file path saves the list of features used for determined high-risk subgroups is also needed for "AUC_gain_change_in_subgroups.py".
+- **Run** "AUC_gain_of_predictors_in_global_model_and_PMTL.py". It outputs AUROC gain of each predictor (i.e. AUROC change of model when a predictor is removed) for PMTL and global model in predicting general patients. Then we can rank the importance of predictors using EXCEL.
+- **Run** "AUC_gain_change_in_subgroups.py". It outputs AUROC gain of each predictor for PMTL and global model in predicting different subgroups. 
+- **Edit** "AUC_with_top_predictors_PMTL.py" and "AUC_with_top_predictors_global_model.py" in folder "[Interaction_analysis]" by specifying the file path of training set, test set, list of important features you select and list of features used for determined high-risk subgroups. The file path saves coefficients of PMTL for each general patient is also needed for "AUC_with_top_predictors_PMTL.py".
+- **Run** "AUC_with_top_predictors_PMTL.py" and  "AUC_with_top_predictors_global_model.py".  It outputs AUROC of PMTL and global model  in predicting different subgroups when only the important predictors is considered.
+- **Edit** "SE_analysis_for_PMTL.py" by specifying the file path of training set, test set and similarity measure learned in training set. 
+- **Run** "SE_analysis_for_PMTL.py", and it output standard error of coefficient estimated by PMTL. This script is not proposed to used when sample size cannot significantly larger than potential predictors; in such a case, such as we estimated standard error of coefficient in subgroup model, we sampling train set with replacement and rebuilt model multiple times, but this approach spend a quite long time in PMTL.
+-  **Edit** "Interaction_discover_by_meta_regression.py" by specifying the file path of a list of target predictors, test set, coefficients of PMTL for each general patient, and standard error of coefficient estimation in PMTL.
+-  **Run** "Interaction_discover_by_meta_regression.py" and the return results can help us analyze which factor may interact with target predictors.
 
-    i) **download** the predictive model package, "AKI_model_kumc.zip", from the securefile link shared by KUMC. Unzip the file and save everything under `./data/model_kumc` (remark: make sure to save the files under the correct directory, as they will be called later using the corresponding path)  
-    
-    ii) **continue to run** *Part II.0* of the r script `render_report.R` after completing *Part I*. *Part II.0* will only depend on tables already extracted from *Part I* (saved locally in the folder `./data/raw/...`), no parameter needs to be set up.        
-    
-    iii) **continue to run** *Part II.1* of the r script `render_report.R` after completing *Part II.0*. *Part II.1* will only depend on tables already extracted from *Part II.0* (saved locally in the folder `./data/preproc/...`), no parameter needs to be set up.     
-
-    iv) **collect and report** the two new output files from `/output` folder           
-      -- a. AKI_CDM_EXT_VALID_p2_1_Benchmark.html - html report with description, figures and partial tables       
-      -- b. AKI_CDM_EXT_VALID_p2_1_Benchmark_TBL.xlsx - excel with full summary tables          
-
-2. Retrain the model using local data and validate on holdout set 
-
-    i) **download** the data dictionary, "feature_dict.csv", from the securefile link shared by KUMC and save the file under "./ref/" (remark: make sure to save the file under the correct directory, as it will be called later using the corresponding path)   
-
-    ii) **continue to run** (optionally, if already run for Part II.1) *Part II.0* of the r script `render_report.R` after completing *Part I*. *Part II.0* will only depend on tables already extracted from *Part I* (saved locally in the folder `./data/raw/...`), no parameter needs to be set up.        
-
-    iii) **continue to run** *Part II.2* of the r script `render_report.R` after completing *Part I*. *Part II.2* will only depend on tables already extracted from *Part II.0* (saved locally in the folder `./data/preproc/...`), no parameter needs to be set up.     
-
-    iv) **collect and report** the two new output files from `/output` folder           
-      -- a. AKI_CDM_EXT_VALID_p2_2_Retrain.html - html report with description, figures and partial tables       
-      -- b. AKI_CDM_EXT_VALID_p2_2_Retrain_TBL.xlsx - excel with full summary tables          
-      
-*Remark: As along as Part I is completed, Part II.1 and Part II.2 can be run independently, based on each site's memory and disk availability.   
-
-
-Run the `distribution_analysis.R` script to calculate the adjMMD and joint KL-divergence of distribution hetergenity among top important variables of each model. adjMMD is an effective metric which can be used to assess and explain model transportability. 
-
+[Interaction_analysis]: https://github.com/BDAII/PMTL/tree/main/Interaction_analysis
 
 ***
-
-### Benchmarking
-a. It takes about **2 ~ 3 hours** to complete Part I (AKI_CDM_EXT_VALID_p1_QA.Rmd). At peak time, it will use about **30 ~ 40GB memory**, especially when large tables like Precribing or Lab tables are loaded in. Total size of output for Part I is about **6MB**.
-
-b. It takes about **60 ~ 70 hours** (6hr/task) to complete Part II.0 (AKI_CDM_EXT_VALID_p2_0_Preprocess.Rmd). At peak time, it will use about **50 ~ 60GB memory**, especially at the preprocessing stage. Total size of intermediate tables and output for Part II.0 is about **2GB**.
-
-c. It takes about **25 ~ 30 hours** to complete Part II.1 (AKI_CDM_EXT_VALID_p2_Benchmark.Rmd). At peak time, it will use about **30 ~ 40GB memory**, especially at the preprocessing stage. Total size of intermediate tables and output for Part II.1 is about **600MB**.
-
-d. It takes about **40 ~ 50 hours** to complete Part II.2 (AKI_CDM_EXT_VALID_p2_Retrain.Rmd). At peak time, it will use about **30 ~ 40GB memory**, especially at the preprocessing stage. Total size of intermediate tables and output for Part II.2 is about **800MB**.
-
-***
-
-
-## SHAP Value Interpretation
-We used [Shapely Additive exPlanations (SHAP)] values to evaluate the marginal effects of the shared top important variables of interests 34. Specifically, the SHAP values evaluated how the logarithmic odds ratio changed by including a factor of certain value for each individual patient. The SHAP values not only captured the global patterns of effects of each factor but also demonstrated the patient-level variations of the effects. We also estimated 95% bootstrapped confidence intervals of SHAP values for each selected feature based on 100 bootstrapped samples. Visit our [SHAP value dashboard] for more details. 
-
-[Shapely Additive exPlanations (SHAP)]: https://papers.nips.cc/paper/7062-a-unified-approach-to-interpreting-model-predictions.pdf 
-[SHAP value dashboard]: https://sxinger.shinyapps.io/AKI_shap_dashbd/
-
-## Adjusted Maxinum Mean Discrepancy (adjMMD)
-The [Maximum Mean Discrepancy (MMD)] has been widely used in transfer learning studies for maximizing the similarity among distributions of different domains. Here we modified the classic MMD by taking the missing pattern and feature importance into consideration, which is used to measure the similarities of distributions for the same feature between training and validation sites. Visit our paper [Cross-Site Transportability of an Explainable Artificial Intelligence Model for Acute Kidney Injury Prediction] (DOI:10.1038/s41467-020-19551-w) for more details. 
-
-[Maximum Mean Discrepancy (MMD)]: https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6751384 
-
-[Cross-Site Transportability of an Explainable Artificial Intelligence Model for Acute Kidney Injury Prediction]: http://www.nature.com/ncomm/10.1038/s41467-020-19551-w
-
-*updated 11/10/2020*
+*updated 10/29/2021*
 
 
